@@ -1,0 +1,109 @@
+buildscript {
+    ext {
+        springBootVersion = '2.0.7.RELEASE'
+    }
+    repositories {
+        maven {url "http://maven.aliyun.com/nexus/content/groups/public"}
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+plugins {
+    id 'net.ltgt.apt' version '0.9'
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'io.spring.dependency-management'
+
+group = 'com.xiekongye.study'
+version = '0.0.1-SNAPSHOT'
+
+compileJava {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    options.compilerArgs << '-parameters'
+}
+
+ext {
+    springBootVersion = '2.0.7.RELEASE'
+    lombokVersion = '1.18.4'
+    mapstructVersion = "1.2.0.Final"
+    shardingJdbcVersion = '2.0.3'
+
+    env = System.getProperty("env") == null ? "development" : System.getProperty("env")
+}
+
+allprojects {
+    configurations.all {
+        // check for updates every build
+        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+        resolutionStrategy {
+
+        }
+    }
+
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+}
+
+subprojects {
+    apply plugin: 'idea'
+    apply plugin: 'java'
+    apply plugin: 'net.ltgt.apt'
+
+    version = parent.version
+    group = parent.group
+
+    configurations {
+//        all*.exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
+//        all*.exclude group: "org.slf4j", module: "slf4j-log4j12"
+//        all*.exclude group: "ch.qos.logback", module: "logback-classic"
+//        all*.exclude group: "ch.qos.logback", module: "logback-core"
+    }
+
+    repositories {
+        maven {url "http://maven.aliyun.com/nexus/content/groups/public"}
+        mavenCentral()
+    }
+
+    sourceSets {
+        main {
+            resources {
+                srcDirs = ["src/main/resources/base", "src/main/resources/$env"]
+            }
+        }
+        test {
+            resources {
+                srcDirs = ["src/test/resources/base", "src/test/resources/$env"]
+            }
+        }
+    }
+
+    dependencies {
+        compile "org.mapstruct:mapstruct:${mapstructVersion}"
+        compile "org.mapstruct:mapstruct-jdk8:${mapstructVersion}"
+        compile "org.projectlombok:lombok:$lombokVersion"
+        apt "org.mapstruct:mapstruct-processor:${mapstructVersion}", "org.projectlombok:lombok:${lombokVersion}"
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+    }
+}
+
+project(":database-sharding-jdbc") {
+    //spring-boot插件
+    apply plugin : 'org.springframework.boot'
+    jar.archiveName = 'database-sharding-jdbc.jar'
+
+    dependencies {
+        compile "org.springframework.boot:spring-boot-starter-web:$springBootVersion"
+        compile "io.shardingjdbc:sharding-jdbc-core:$shardingJdbcVersion"
+    }
+}
